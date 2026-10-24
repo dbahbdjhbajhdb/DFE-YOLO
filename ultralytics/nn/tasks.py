@@ -12,6 +12,7 @@ import torch.nn as nn
 
 from ultralytics.nn.autobackend import check_class_names
 from ultralytics.nn.modules import (
+    AdaptiveTFE,
     AIFI,
     C1,
     C2,
@@ -1659,6 +1660,11 @@ def parse_model(d, ch, verbose=True):
             c2 = args[1] if args[3] else args[1] * 4
         elif m is torch.nn.BatchNorm2d:
             args = [ch[f]]
+        elif m is AdaptiveTFE:
+            if not isinstance(f, (list, tuple)) or len(f) != 3 or n != 1:
+                raise ValueError("AdaptiveTFE requires three input layers and repeats=1")
+            c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            args = [[ch[x] for x in f], c2, *args[1:]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
         elif m is Conv1x1_Equal:
